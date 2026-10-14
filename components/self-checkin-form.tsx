@@ -1,0 +1,246 @@
+"use client";
+
+import { friendlyError } from "@/lib/errors";
+import { useState } from "react";
+import { PendingButton } from "@/components/pending-button";
+import { Checkbox } from "@/components/checkbox";
+import { FoundViaSelect } from "@/components/found-via-select";
+import type { MatchedMember, CheckMatchResult, CheckInResult } from "@/app/checkin/[eventId]/actions";
+import type { EventDiscoverySource } from "@/lib/types";
+
+const inputClass =
+  "rounded-md border border-line bg-bg px-3.5 py-3 text-base font-normal placeholder:text-ink-soft/60 focus:border-accent focus:outline-none";
+
+type Step = "details" | "confirm" | "done";
+
+export function SelfCheckinForm({
+  onCheckMatch,
+  onSubmit,
+}: {
+  onCheckMatch: (formData: FormData) => Promise<CheckMatchResult>;
+  onSubmit: (formData: FormData) => Promise<CheckInResult>;
+}) {
+  const [step, setStep] = useState<Step>("details");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [studentNumber, setStudentNumber] = useState("");
+  const [notAStudent, setNotAStudent] = useState(false);
+  const [course, setCourse] = useState("");
+  const [isClubMember, setIsClubMember] = useState(false);
+  const [foundVia, setFoundVia] = useState<EventDiscoverySource | "">("");
+  const [foundViaOtherDetails, setFoundViaOtherDetails] = useState("");
+  const [match, setMatch] = useState<MatchedMember | null>(null);
+
+  const idValid = notAStudent ? studentNumber === "" : studentNumber.length === 7;
+  const foundViaValid = foundVia !== "" && (foundVia !== "other" || foundViaOtherDetails.trim() !== "");
+
+  const buildFormData = (confirmedMemberId?: string) => {
+    const fd = new FormData();
+    fd.set("full_name", fullName);
+    fd.set("email", email);
+    fd.set("student_number", studentNumber);
+    if (notAStudent) fd.set("not_a_student", "on");
+    fd.set("course", course);
+    if (isClubMember) fd.set("is_club_member", "on");
+    fd.set("found_via", foundVia);
+    if (foundVia === "other") fd.set("found_via_other_details", foundViaOtherDetails);
+    if (confirmedMemberId) fd.set("confirmed_member_id", confirmedMemberId);
+    return fd;
+  };
+
+  const finishCheckIn = async (confirmedMemberId?: string) => {
+    setError(null);
+    setPending(true);
+    try {
+      const result = await onSubmit(buildFormData(confirmedMemberId));
+      if (result.ok) {
+        setStep("done");
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError(friendlyError(err, "Couldn't check you in, please try again."));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  if (step === "done") {
+    return (
+      <div className="rounded-lg border border-line bg-surface p-6 text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success-soft text-2xl text-success" aria-hidden>
+          ✓
+        </div>
+        <h2 className="mt-3 font-display text-xl font-bold tracking-tight">You&apos;re checked in!</h2>
+        <p className="mt-2 text-sm text-ink-soft">Terima kasih, enjoy the event.</p>
+      </div>
+    );
+  }
+
+  if (step === "confirm" && match) {
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-soft">
+        <p className="text-sm">
+          Welcome back, <span className="font-semibold">{match.fullName}</span>. Is this you?
+        </p>
+        <dl className="flex flex-col gap-1 rounded-md border border-line bg-bg px-3 py-2 text-sm">
+          <div className="flex justify-between gap-2">
+            <dt className="text-ink-soft">Student ID</dt>
+            <dd className="font-mono">{match.studentNumber ?? "N/A"}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-ink-soft">Course</dt>
+            <dd className="font-mono">{match.course ?? "—"}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-ink-soft">Club member</dt>
+            <dd>{match.isClubMember ? "Yes" : "No"}</dd>
+          </div>
+        </dl>
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <div className="flex gap-2">
+          <PendingButton
+            pending={pending}
+            onClick={() => finishCheckIn(match.memberId)}
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition-colors hover:bg-accent-hover"
+          >
+            Yes, that&apos;s me
+          </PendingButton>
+          <PendingButton
+            pending={pending}
+            onClick={() => finishCheckIn()}
+            className="rounded-md border border-line px-4 py-2 text-sm font-medium transition-colors hover:bg-bg"
+          >
+            No, add me as new
+          </PendingButton>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setStep("details");
+          }}
+          disabled={pending}
+          className="self-start text-xs text-ink-soft underline-offset-2 hover:underline disabled:cursor-not-allowed"
+        >
+          Edit my details instead
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setError(null);
+        setPending(true);
+        try {
+          const result = await onCheckMatch(buildFormData());
+          if (!result.ok) {
+            setError(result.error);
+          } else if (result.matched) {
+            setMatch(result.member);
+            setStep("confirm");
+          } else {
+            await finishCheckIn();
+          }
+        } catch (err) {
+          setError(friendlyError(err, "Couldn't check you in, please try again."));
+        } finally {
+          setPending(false);
+        }
+      }}
+      className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-soft"
+    >
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        Full name
+        <input
+          name="full_name"
+          required
+          placeholder="Your full name"
+          autoComplete="name"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          className={inputClass}
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        Email
+        <input
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="you@student.unimelb.edu.au"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={inputClass}
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        Student ID
+        <input
+          name="student_number"
+          value={studentNumber}
+          onChange={(e) => setStudentNumber(e.target.value.replace(/\D/g, ""))}
+          inputMode="numeric"
+          maxLength={7}
+          required={!notAStudent}
+          disabled={notAStudent}
+          placeholder={notAStudent ? "N/A" : "7 digits"}
+          className={`${inputClass} font-mono disabled:cursor-not-allowed disabled:opacity-50`}
+        />
+      </label>
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <Checkbox
+          name="not_a_student"
+          checked={notAStudent}
+          onChange={(e) => {
+            setNotAStudent(e.target.checked);
+            if (e.target.checked) setStudentNumber("");
+          }}
+        />
+        I&apos;m not a student
+      </label>
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        Course
+        <input
+          name="course"
+          value={course}
+          onChange={(e) => setCourse(e.target.value.toUpperCase())}
+          pattern="[A-Z]+-[A-Z]+"
+          title="All caps with a dash, e.g. B-SCI"
+          placeholder="e.g. B-SCI (optional)"
+          className={`${inputClass} font-mono uppercase`}
+        />
+      </label>
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <Checkbox
+          name="is_club_member"
+          checked={isClubMember}
+          onChange={(e) => setIsClubMember(e.target.checked)}
+        />
+        I&apos;m a club member
+      </label>
+
+      <FoundViaSelect
+        value={foundVia}
+        onChange={setFoundVia}
+        otherDetails={foundViaOtherDetails}
+        onOtherDetailsChange={setFoundViaOtherDetails}
+      />
+
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <PendingButton
+        pending={pending}
+        disabled={!idValid || !foundViaValid}
+        className="mt-1 w-full rounded-full bg-accent px-5 py-3.5 text-base font-semibold text-accent-ink shadow-soft hover:bg-accent-hover"
+      >
+        Check in
+      </PendingButton>
+    </form>
+  );
+}

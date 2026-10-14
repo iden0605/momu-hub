@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+/* MoMU palette: coral, marigold and slate from the club logo on a warm cream base */
+:root {
+  --bg: #fbf6ee;
+  --surface: #ffffff;
+  --surface-2: #f4ece0;
+  --line: #eadfce;
+  --ink: #2e3445;
+  --ink-soft: #6b7183;
+  --nav: #3b4660;
+  --nav-ink: #ffffff;
+  --accent: #e2685a;
+  --accent-hover: #cf5547;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe3de;
+  --marigold: #eab55c;
+  --marigold-soft: #fbefd6;
+  --slate-soft: #e6e9f0;
+  --success: #2f8a5b;
+  --success-soft: #dcf1e4;
+  --warn: #a8690f;
+  --warn-soft: #fbefd6;
+  --danger: #c2413a;
+  --danger-soft: #fbe3e1;
+  --shadow: 0 1px 2px rgb(46 52 69 / 0.06), 0 8px 24px -12px rgb(46 52 69 / 0.18);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-nav: var(--nav);
+  --color-nav-ink: var(--nav-ink);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-marigold: var(--marigold);
+  --color-marigold-soft: var(--marigold-soft);
+  --color-slate-soft: var(--slate-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --shadow-soft: var(--shadow);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Rounder, softer controls everywhere */
+.rounded-md {
+  border-radius: 0.75rem;
+}
+.rounded-lg {
+  border-radius: 1rem;
+}
+.rounded-xl {
+  border-radius: 1.25rem;
+}
+
+/* Stop iOS zooming into inputs under 16px */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+button,
+a {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: 150ms;
+}
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.thin-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--line);
+  border-radius: 9999px;
+}
+
+/* Gentle entrance for page content */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise 280ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise {
+    animation: none;
+  }
+}
+
+/* Logo ring stripe, echoing the MoMU badge */
+.momu-stripe {
+  background: repeating-linear-gradient(
+    115deg,
+    var(--accent) 0 18px,
+    var(--marigold) 18px 36px,
+    var(--nav) 36px 54px
+  );
+}
+
+/* Loading skeleton shimmer */
+.skeleton {
+  background: linear-gradient(100deg, var(--surface-2) 30%, var(--marigold-soft) 50%, var(--surface-2) 70%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* Bouncing loader dots */
+.loader-dot {
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 9999px;
+  animation: hop 0.9s ease-in-out infinite;
+}
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .loader-dot {
+    animation: none;
+  }
+}
