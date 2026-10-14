@@ -54,6 +54,11 @@
   --font-mono: var(--font-mono);
 }
 
+/* Reserve the scrollbar space so it never jumps between pages */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--bg);
   color: var(--ink);
